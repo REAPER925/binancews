@@ -1,0 +1,8 @@
+/REAPER/binancews/CMakeFiles/rebuild_cache.dir
+/REAPER/binancews/CMakeFiles/edit_cache.dir
+/REAPER/binancews/binancews/CMakeFiles/rebuild_cache.dir
+/REAPER/binancews/binancews/CMakeFiles/edit_cache.dir
+/REAPER/binancews/binancews/CMakeFiles/binancews.dir
+/REAPER/binancews/binancewslib/CMakeFiles/rebuild_cache.dir
+/REAPER/binancews/binancewslib/CMakeFiles/edit_cache.dir
+/REAPER/binancews/binancewslib/CMakeFiles/binancewslib.dir
