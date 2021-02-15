@@ -4,8 +4,12 @@
 #include <iostream>
 #include <future>
 
+#include <cpprest/ws_client.h>
+#include <cpprest/json.h>
+
 #include <BinanceExchange.hpp>
 #include <Logger.hpp>
+#include <Redis.hpp>
 
 
 using namespace std::chrono_literals;
@@ -16,78 +20,73 @@ int main(int argc, char** argv)
 {
     try
     {
-        // flags
-        std::atomic_bool silent = false;
+
+         //string redisIp;
+        //int redisPort = 6379;
+
+       // if (argc == 3)
+       // {
+        //    redisIp = argv[1];
+        //    redisPort = std::stoi(argv[2]);
+        //}
+       // else
+       // //{
+        //    logg("Not using Redis to do use: [RedisIP] [RedisPort] command line args, i.e.:");
+        //    logg("./binancews 192.168.10.10 6379");
+        //}
+
+         logg("CONNECTING_TO_REDIS_SENTINEL_MASTER_192.168.100.12");
+         // create and connect to Redis
+         shared_ptr<Redis> redis;
+         redis = std::make_shared<Redis>();
+         redis->init();
 
 
-        auto handleKeyValueData = [&silent](Binance::BinanceKeyValueData data)
+        auto onAllSymbolsDataFunc = [redis] (std::map<std::string, std::string> data)
         {
-            if (!silent)
+            static string ChannelNameStart = "binance_";
+            static string ChannelNameEnd = "_EXCHANGE_INSTRUMENT_PRICE_CHANNEL";
+
+            std::stringstream ss;
+
+            if (redis)
             {
-                for (auto& p : data.values)
+                ss << "PUBLISHING_" << data.size() << "_SYMBOL_UPDATES_TO_REDIS";
+                logg(ss.str());
+
+                for (const auto& sym : data)
                 {
-                    logg(p.first + "=" + p.second);
+                    redis->publish(ChannelNameStart + sym.first + ChannelNameEnd, { "{\"exchange\":\"binance\", \"instrument\":\"" + sym.first + "\", \"price\":\"" + sym.second + "\"}" });
+                    redis->set(sym.first + "_PRICE", sym.second);
                 }
+            }
+            else
+            {
+                ss << "Received " << data.size() << " symbol updates";
+                logg(ss.str());
             }
         };
 
 
-        auto handleKeyMultipleValueData = [&silent](Binance::BinanceKeyMultiValueData data)
+        auto consoleFuture = std::async(std::launch::async, []()
         {
-            if (!silent)
-            {
-                std::stringstream ss;
-
-                for (auto& s : data.values)
-                {
-                    ss << "\n" << s.first << "\n{";
-
-                    for (auto& value : s.second)
-                    {
-                        ss << "\n\t" << value.first << "=" << value.second;
-                    }
-
-                    ss << "\n}";
-                }
-
-                logg(ss.str());
-            }           
-        };
-
-
-
-        auto consoleFuture = std::async(std::launch::async, [&silent]()
-        {
-            std::cout << "Commands:\nstop : exit\nsilent (s): no output to console\nverbose (v): output to console";
-                
             bool run = true;
             std::string cmd;
             while (run && std::getline(std::cin, cmd))
             {
                 run = (cmd != "stop");
-                
-                if (cmd == "silent" || cmd == "s")
-                    silent = true;
-                else if (cmd == "verbose" || cmd == "v")
-                    silent = false;
             }
         });
 
-
         Binance be;
-        
-        // symbols are always lower case
-        //if (auto valid = be.monitorTradeStream("grtusdt", handleKeyValueData); !valid.isValid())
-        //{
-            //logg("monitorTradeStream failed");
-        //}
-
-        if (auto valid = be.monitorAllSymbols(handleKeyMultipleValueData); !valid.isValid())
+        if (auto allSymbolsToken = be.monitorAllSymbols(onAllSymbolsDataFunc) ;  allSymbolsToken.isValid())
         {
-            logg("monitorAllSymbols failed");
+            consoleFuture.wait();
         }
-        
-        consoleFuture.wait();
+        else
+        {
+            logg("Failed to create monitor for All Symbols");
+        }        
     }
     catch (const std::exception ex)
     {
