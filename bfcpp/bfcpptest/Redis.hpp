@@ -4,7 +4,7 @@
 #include <functional>
 #include "Logger.hpp"
 
-namespace binancews
+namespace bfcpp
 {
     using std::shared_ptr;
     using std::string;
