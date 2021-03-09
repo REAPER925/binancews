@@ -12,6 +12,6 @@ add_executable (bfcpptest "bfcpptest.cpp" "ScopedTimer.cpp")
 
 set_target_properties(bfcpptest PROPERTIES CXX_STANDARD 17)
 
-target_link_libraries(bfcpptest -lPocoFoundation -lpthread -lboost_system -lboost_date_time -lcpprest -lssl -lcrypto -lz -ldl)
+target_link_libraries(bfcpptest -lPocoFoundation -lpthread -lredis++ -lboost_system -lboost_date_time -lcpprest -lhiredis -lssl -lcrypto -lz -ldl)
 target_link_libraries(bfcpptest bfcpplib)
 

@@ -9,6 +9,8 @@
 
 #include "OpenAndCloseLimitOrder.h"
 #include "ScopedTimer.hpp"
+#include "Redis.hpp"
+
 
 
 using namespace std::chrono_literals;
@@ -470,7 +472,24 @@ void accountBalance(const ApiAccess& access)
 
 void takerBuySellVolume(const ApiAccess& access)
 {
+	
+
 	std::cout << "\n\n--- USD-M Futures Taker Buy Sell Volume ---\n";
+
+	
+	  shared_ptr<Redis> redis;
+          redis = std::make_shared<Redis>();
+          redis->init();
+
+          if (redis)
+          {
+                redis->publish("REDIS_LOGS_CHANNEL",  "GETTING_RATIO_DATA");
+          }
+
+
+
+
+
 
 	UsdFuturesMarket futuresTest{ access };
 
@@ -481,7 +500,10 @@ void takerBuySellVolume(const ApiAccess& access)
 	for (const auto& entry : result.response)
 	{
 		ss << "\n{";
+
 		std::for_each(std::begin(entry), std::end(entry), [&ss](auto& values) { ss << "\n\t" << values.first << "=" << values.second;  });
+		redis->publish("REDIS_LOGS_CHANNEL",  "HERE_IS_THE_RATIO_DATA_" + ss);
+
 		ss << "\n}";
 	}
 
